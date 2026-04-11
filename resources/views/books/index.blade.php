@@ -48,18 +48,6 @@
                 </form>
             </div>
 
-            @if(session('success'))
-                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 shadow-sm rounded-r-lg" role="alert">
-                    <p>{{ session('success') }}</p>
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 shadow-sm rounded-r-lg" role="alert">
-                    <p>{{ session('error') }}</p>
-                </div>
-            @endif
-
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl border border-gray-100">
                 <div class="p-0 overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-100">
@@ -107,7 +95,57 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-right space-x-2">
-                                    <div class="flex justify-end items-center gap-2">
+                                    <div class="flex justify-end items-center gap-2" x-data="{ open: false }">
+                                        <button @click="open = true" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition" title="View Details">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        </button>
+
+                                        <!-- Book Details Modal -->
+                                        <x-modal name="book-details" :show="false" x-show="open" @close="open = false">
+                                            <div class="p-6">
+                                                <div class="flex justify-between items-start mb-4">
+                                                    <h3 class="text-2xl font-bold text-gray-900">{{ $book->title }}</h3>
+                                                    <span class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold uppercase">{{ $book->category->name }}</span>
+                                                </div>
+                                                
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                    <div class="space-y-4">
+                                                        <div>
+                                                            <label class="block text-xs font-bold text-gray-400 uppercase">Author</label>
+                                                            <p class="text-gray-700 font-medium">{{ $book->author }}</p>
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-xs font-bold text-gray-400 uppercase">ISBN-13</label>
+                                                            <p class="text-gray-700 font-mono">{{ $book->isbn }}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="space-y-4">
+                                                        <div>
+                                                            <label class="block text-xs font-bold text-gray-400 uppercase">Availability</label>
+                                                            <div class="flex items-center mt-1">
+                                                                <span class="h-3 w-3 rounded-full {{ $book->available_quantity > 0 ? 'bg-green-500' : 'bg-red-500' }} mr-2"></span>
+                                                                <p class="text-gray-700 font-bold">{{ $book->available_quantity }} units available</p>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-xs font-bold text-gray-400 uppercase">Total Stock</label>
+                                                            <p class="text-gray-700">{{ $book->quantity }} units total</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                                    <x-secondary-button @click="open = false">Close</x-secondary-button>
+                                                    @if($book->available_quantity > 0)
+                                                        <form action="{{ route('books.borrow', $book) }}" method="POST">
+                                                            @csrf
+                                                            <x-primary-button>Borrow This Book</x-primary-button>
+                                                        </form>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </x-modal>
+
                                         @if($book->available_quantity > 0)
                                         <form action="{{ route('books.borrow', $book) }}" method="POST" class="inline">
                                             @csrf

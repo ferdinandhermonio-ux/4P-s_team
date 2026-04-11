@@ -16,6 +16,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['au
 Route::middleware(['auth', 'role:admin,librarian'])->group(function () {
     Route::resource('books', BookController::class);
     Route::resource('categories', CategoryController::class);
+    Route::get('/borrowings', [BorrowingController::class, 'index'])->name('borrowings.index');
+    Route::get('/activities', [BorrowingController::class, 'activities'])->name('borrowings.activities');
 });
 
 Route::middleware(['auth'])->group(function () {

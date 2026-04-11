@@ -12,22 +12,40 @@ use Carbon\Carbon;
 
 class BorrowingController extends Controller
 {
+    const MAX_BORROW_LIMIT = 5;
+
     public function borrow(Book $book)
     {
+        $user = Auth::user();
+
+        // 1. Check if book is available
         if ($book->available_quantity <= 0) {
-            return back()->with('error', 'Book is currently not available.');
+            return back()->with('error', 'Book is currently out of stock.');
         }
 
-        // Check if user already borrowed this book and hasn't returned it
-        $existing = Borrowing::where('user_id', Auth::id())
+        // 2. Check if user already has this book borrowed
+        $alreadyBorrowed = Borrowing::where('user_id', $user->id)
             ->where('book_id', $book->id)
+            ->where('status', '!=', 'returned')
+            ->exists();
+
+        if ($alreadyBorrowed) {
+            return back()->with('error', 'You currently have an active borrowing for this book.');
+        }
             ->whereIn('status', ['borrowed', 'overdue'])
             ->first();
 
-        if ($existing) {
-            return back()->with('error', 'You have already borrowed this book.');
+        // 3. Check borrow limit (e.g., max 5 books)
+        $activeBorrowingsCount = Borrowing::where('user_id', $user->id)
+            ->where('status', '!=', 'returned')
+            ->count();
+
+        if ($activeBorrowingsCount >= self::MAX_BORROW_LIMIT) {
+            return back()->with('error', 'You have reached the maximum limit of ' . self::MAX_BORROW_LIMIT . ' borrowed books.');
         }
 
+        Borrowing::create([
+            'user_id' => $user->id,
         $borrowing = Borrowing::create([
             'user_id' => Auth::id(),
             'book_id' => $book->id,
@@ -38,6 +56,7 @@ class BorrowingController extends Controller
 
         $book->decrement('available_quantity');
 
+        return back()->with('success', 'Book "' . $book->title . '" borrowed! Return it by ' . now()->addDays(14)->format('M d, Y'));
         ActivityLog::create([
             'user_id' => Auth::id(),
             'action' => 'borrow',
@@ -52,8 +71,11 @@ class BorrowingController extends Controller
     public function returnBook(Borrowing $borrowing)
     {
         if ($borrowing->status === 'returned') {
-            return back()->with('error', 'Book already returned.');
+            return back()->with('error', 'This record is already marked as returned.');
         }
+
+        $isOverdue = now()->greaterThan($borrowing->due_date);
+        $daysKept = $borrowing->borrowed_at->diffInDays(now());
 
         $borrowing->update([
             'returned_at' => now(),
@@ -62,6 +84,12 @@ class BorrowingController extends Controller
 
         $borrowing->book->increment('available_quantity');
 
+        $message = 'Book returned successfully. You kept it for ' . $daysKept . ' days.';
+        if ($isOverdue) {
+            return back()->with('success', $message . ' (Returned Late)');
+        }
+
+        return back()->with('success', $message);
         ActivityLog::create([
             'user_id' => Auth::id(),
             'action' => 'return',

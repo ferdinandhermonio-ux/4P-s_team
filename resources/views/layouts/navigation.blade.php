@@ -15,6 +15,22 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+
+                    <x-nav-link :href="route('my.borrowings')" :active="request()->routeIs('my.borrowings')">
+                        {{ __('My Borrowings') }}
+                    </x-nav-link>
+
+                    @if(Auth::user()->role === 'admin' || Auth::user()->role === 'librarian')
+                        <x-nav-link :href="route('books.index')" :active="request()->routeIs('books.*')">
+                            {{ __('Manage Books') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('borrowings.index')" :active="request()->routeIs('borrowings.index')">
+                            {{ __('Reports') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('borrowings.activities')" :active="request()->routeIs('borrowings.activities')">
+                            {{ __('Activity Logs') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -70,6 +86,22 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('my.borrowings')" :active="request()->routeIs('my.borrowings')">
+                {{ __('My Borrowings') }}
+            </x-responsive-nav-link>
+
+            @if(Auth::user()->role === 'admin' || Auth::user()->role === 'librarian')
+                <x-responsive-nav-link :href="route('books.index')" :active="request()->routeIs('books.*')">
+                    {{ __('Manage Books') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('borrowings.index')" :active="request()->routeIs('borrowings.index')">
+                    {{ __('Reports') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('borrowings.activities')" :active="request()->routeIs('borrowings.activities')">
+                    {{ __('Activity Logs') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

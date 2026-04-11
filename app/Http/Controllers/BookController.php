@@ -16,14 +16,29 @@ class BookController extends Controller
     {
         $query = Book::with('category');
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $search = $request->get('search');
-            $query->where('title', 'like', "%{$search}%")
-                  ->orWhere('author', 'like', "%{$search}%");
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('author', 'like', "%{$search}%")
+                  ->orWhere('isbn', 'like', "%{$search}%");
+            });
         }
 
-        $books = $query->paginate(10);
-        return view('books.index', compact('books'));
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->get('stock_status') === 'low') {
+            $query->whereRaw('available_quantity <= 2 AND available_quantity > 0');
+        } elseif ($request->get('stock_status') === 'out') {
+            $query->where('available_quantity', 0);
+        }
+
+        $books = $query->latest()->paginate(10)->withQueryString();
+        $categories = Category::all();
+
+        return view('books.index', compact('books', 'categories'));
     }
 
     /**
@@ -86,7 +101,17 @@ class BookController extends Controller
             'quantity' => 'required|integer|min:0',
         ]);
 
-        $book->update($request->all());
+        $quantityDiff = $request->quantity - $book->quantity;
+        $newAvailable = $book->available_quantity + $quantityDiff;
+
+        if ($newAvailable < 0) {
+            return back()->with('error', 'Cannot reduce total quantity below the number of currently borrowed books.');
+        }
+
+        $data = $request->all();
+        $data['available_quantity'] = $newAvailable;
+
+        $book->update($data);
 
         return redirect()->route('books.index')->with('success', 'Book updated successfully.');
     }

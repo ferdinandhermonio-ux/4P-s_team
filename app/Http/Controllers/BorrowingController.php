@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Borrowing;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 
 use App\Models\Book;
@@ -31,6 +32,8 @@ class BorrowingController extends Controller
         if ($alreadyBorrowed) {
             return back()->with('error', 'You currently have an active borrowing for this book.');
         }
+            ->whereIn('status', ['borrowed', 'overdue'])
+            ->first();
 
         // 3. Check borrow limit (e.g., max 5 books)
         $activeBorrowingsCount = Borrowing::where('user_id', $user->id)
@@ -43,6 +46,8 @@ class BorrowingController extends Controller
 
         Borrowing::create([
             'user_id' => $user->id,
+        $borrowing = Borrowing::create([
+            'user_id' => Auth::id(),
             'book_id' => $book->id,
             'borrowed_at' => now(),
             'due_date' => now()->addDays(14),
@@ -52,6 +57,15 @@ class BorrowingController extends Controller
         $book->decrement('available_quantity');
 
         return back()->with('success', 'Book "' . $book->title . '" borrowed! Return it by ' . now()->addDays(14)->format('M d, Y'));
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'borrow',
+            'model_type' => Borrowing::class,
+            'model_id' => $borrowing->id,
+            'description' => "Borrowed book: {$book->title}",
+        ]);
+
+        return back()->with('success', 'Book borrowed successfully. Please return by ' . now()->addDays(14)->format('Y-m-d'));
     }
 
     public function returnBook(Borrowing $borrowing)
@@ -76,6 +90,15 @@ class BorrowingController extends Controller
         }
 
         return back()->with('success', $message);
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'return',
+            'model_type' => Borrowing::class,
+            'model_id' => $borrowing->id,
+            'description' => "Returned book: {$borrowing->book->title}",
+        ]);
+
+        return back()->with('success', 'Book returned successfully.');
     }
 
     public function myBorrowings()
@@ -84,9 +107,39 @@ class BorrowingController extends Controller
         return view('borrowings.my-borrowings', compact('borrowings'));
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $borrowings = Borrowing::with(['book', 'user'])->latest()->paginate(20);
+        $query = Borrowing::with(['book', 'user']);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('user', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
+            })->orWhereHas('book', function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%");
+            });
+        }
+
+        $borrowings = $query->latest()->paginate(20)->withQueryString();
         return view('borrowings.index', compact('borrowings'));
+    }
+
+    public function activities(Request $request)
+    {
+        $query = ActivityLog::with('user');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('user', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
+            })->orWhere('description', 'like', "%{$search}%");
+        }
+
+        $activities = $query->latest()->paginate(20)->withQueryString();
+        return view('borrowings.activities', compact('activities'));
     }
 }

@@ -60,6 +60,7 @@ class BookController extends Controller
             'author' => 'required',
             'category_id' => 'required|exists:categories,id',
             'isbn' => 'required|unique:books,isbn',
+            'cover_image' => 'nullable|url|max:2048',
             'quantity' => 'required|integer|min:0',
         ]);
 
@@ -98,6 +99,7 @@ class BookController extends Controller
             'author' => 'required',
             'category_id' => 'required|exists:categories,id',
             'isbn' => 'required|unique:books,isbn,' . $book->id,
+            'cover_image' => 'nullable|url|max:2048',
             'quantity' => 'required|integer|min:0',
         ]);
 

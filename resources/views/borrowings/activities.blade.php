@@ -1,71 +1,66 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('System Activity Logs') }}
-        </h2>
+        <div>
+            <h2 class="app-title" style="font-family: 'Plus Jakarta Sans', sans-serif;">System Activity Logs</h2>
+            <p class="app-subtitle">Review borrowing, return, and inventory actions across the system.</p>
+        </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    
-                    <div class="mb-6">
-                        <form method="GET" action="{{ route('borrowings.activities') }}" class="flex items-center gap-4">
-                            <x-text-input name="search" placeholder="Search activity..." value="{{ request('search') }}" class="w-full max-w-sm" />
-                            <x-primary-button>Search</x-primary-button>
-                            @if(request('search'))
-                                <a href="{{ route('borrowings.activities') }}" class="text-sm text-gray-600 hover:text-gray-900 underline">Clear</a>
-                            @endif
-                        </form>
-                    </div>
-
-                    <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-                        <table class="w-full text-sm text-left text-gray-500">
-                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3">User</th>
-                                    <th class="px-6 py-3">Action</th>
-                                    <th class="px-6 py-3">Description</th>
-                                    <th class="px-6 py-3">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($activities as $activity)
-                                    <tr class="bg-white border-b hover:bg-gray-50">
-                                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                                            {{ $activity->user->name }}
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <span class="px-2 py-1 rounded text-xs font-bold uppercase
-                                                {{ $activity->action === 'borrow' ? 'bg-blue-100 text-blue-700' : '' }}
-                                                {{ $activity->action === 'return' ? 'bg-green-100 text-green-700' : '' }}
-                                                {{ $activity->action === 'create' ? 'bg-purple-100 text-purple-700' : '' }}
-                                                {{ $activity->action === 'delete' ? 'bg-red-100 text-red-700' : '' }}">
-                                                {{ $activity->action }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            {{ $activity->description }}
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            {{ $activity->created_at->format('Y-m-d H:i:s') }}
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="px-6 py-4 text-center">No activities recorded.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="mt-4">
-                        {{ $activities->links() }}
-                    </div>
+    <div class="app-container pt-6">
+        <section class="app-card p-5 fade-up">
+            <form method="GET" action="{{ route('borrowings.activities') }}" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div class="w-full sm:max-w-md">
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Search</label>
+                    <input name="search" value="{{ request('search') }}" placeholder="Search activity details" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500" />
                 </div>
+                <button class="btn btn-primary">Search</button>
+                @if(request('search'))
+                    <a href="{{ route('borrowings.activities') }}" class="btn btn-secondary">Clear</a>
+                @endif
+            </form>
+        </section>
+
+        <section class="mt-5 app-card p-0 fade-up-delay">
+            <div class="table-wrap">
+                <table class="table-ui min-w-full divide-y divide-slate-200">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Description</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                        @forelse($activities as $activity)
+                            <tr>
+                                <td class="font-semibold text-slate-900">{{ $activity->user->name }}</td>
+                                <td>
+                                    @if($activity->action === 'borrow')
+                                        <span class="badge badge-brand">borrow</span>
+                                    @elseif($activity->action === 'return')
+                                        <span class="badge badge-success">return</span>
+                                    @elseif($activity->action === 'delete')
+                                        <span class="badge badge-danger">delete</span>
+                                    @else
+                                        <span class="badge badge-warning">{{ $activity->action }}</span>
+                                    @endif
+                                </td>
+                                <td class="text-slate-700">{{ $activity->description }}</td>
+                                <td class="text-sm text-slate-600">{{ $activity->created_at->format('Y-m-d H:i:s') }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="py-12 text-center text-sm text-slate-500">No activities recorded.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-        </div>
+
+            <div class="border-t border-slate-200 bg-slate-50 px-5 py-4">
+                {{ $activities->links() }}
+            </div>
+        </section>
     </div>
 </x-app-layout>
